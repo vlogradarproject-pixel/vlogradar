@@ -1,0 +1,14 @@
+{
+  "name": "vlogradar-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend for VlogRadar: fetches each channel's latest video and works out where it was filmed",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Mark Wiens",
+    "channelId": "UCyEd6QBSgat5kkC6svyjudA",
+    "color": "#1a6ef5",
+    "initials": "MW",
+    "fallbackLat": 29.76,
+    "fallbackLng": -95.37,
+    "fallbackLocation": "Houston, USA"
+  },
+  {
+    "name": "Kyde & Eric",
+    "channelId": "UC8d5J4MxwHtbGINFyJgAJzA",
+    "color": "#1D9E75",
+    "initials": "KE",
+    "fallbackLat": 36.15,
+    "fallbackLng": 139.39,
+    "fallbackLocation": "Kumagaya, Japan"
+  },
+  {
+    "name": "Indigo Traveller",
+    "channelId": "UCXulruMI7BHj3kGyosNa0jA",
+    "color": "#D85A30",
+    "initials": "IT",
+    "fallbackLat": 23.8,
+    "fallbackLng": 90.42,
+    "fallbackLocation": "Bangladesh"
+  },
+  {
+    "name": "Itchy Boots",
+    "channelId": "UCEIs9nkveW9WmYtsOcJBwTg",
+    "color": "#BA7517",
+    "initials": "IB",
+    "fallbackLat": 47.92,
+    "fallbackLng": 106.92,
+    "fallbackLocation": "Mongolia"
+  },
+  {
+    "name": "Bald and Bankrupt",
+    "channelId": "UCxDZs_ltFFvn0FDHT6kmoXA",
+    "color": "#7F77DD",
+    "initials": "BB",
+    "fallbackLat": 51.51,
+    "fallbackLng": 0.13,
+    "fallbackLocation": "United Kingdom"
+  },
+  {
+    "name": "Fearless & Far",
+    "channelId": "UC_DmOS_FBvO4H27U7X0OtRg",
+    "color": "#D4537E",
+    "initials": "FF",
+    "fallbackLat": 43.65,
+    "fallbackLng": -79.38,
+    "fallbackLocation": "Canada"
+  },
+  {
+    "name": "Hey Nadine",
+    "channelId": "UCB-Ps5DdRsVAcml-Y43o7RQ",
+    "color": "#0F6E56",
+    "initials": "HN",
+    "fallbackLat": 43.65,
+    "fallbackLng": -79.38,
+    "fallbackLocation": "Canada"
+  },
+  {
+    "name": "Gabriel Traveler",
+    "channelId": "UCgZM50Ig7STDS0l6f_QnrXw",
+    "color": "#993C1D",
+    "initials": "GT",
+    "fallbackLat": 37.09,
+    "fallbackLng": -95.71,
+    "fallbackLocation": "USA"
+  }
+]

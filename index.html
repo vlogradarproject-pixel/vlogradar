@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VlogRadar — Track the world's travel vloggers</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --text: #1a1a18;
+    --muted: #6b6b67;
+    --hint: #a8a8a4;
+    --accent: #1a6ef5;
+    --accent-light: #e8f0fe;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px; background: var(--surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0; z-index: 1000;
+  }
+  .logo { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 500; letter-spacing: -0.3px; color: var(--text); }
+  .logo span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .tracker-count { font-size: 13px; color: var(--muted); background: var(--bg); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); }
+  .last-updated { font-size: 12px; color: var(--hint); }
+  #map-container { flex: 1; position: relative; }
+  #map { width: 100%; height: 100%; }
+  .leaflet-tile-pane { }
+  .sidebar {
+    position: absolute; top: 16px; left: 16px; width: 270px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); z-index: 999; overflow: hidden;
+    max-height: calc(100vh - 90px); overflow-y: auto;
+  }
+  .sidebar-header { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; align-items: center; }
+  .refresh-btn { font-size: 11px; color: var(--accent); cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; padding: 2px 6px; border-radius: 4px; }
+  .refresh-btn:hover { background: var(--accent-light); }
+  .vlogger-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; transition: background 0.12s; border-bottom: 1px solid var(--border); }
+  .vlogger-item:last-child { border-bottom: none; }
+  .vlogger-item:hover { background: var(--bg); }
+  .vlogger-item.active { background: var(--accent-light); }
+  .vlogger-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .vlogger-info { flex: 1; min-width: 0; }
+  .vlogger-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vlogger-loc { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vlogger-status { font-size: 10px; margin-top: 2px; }
+  .status-loading { color: var(--hint); }
+  .status-live { color: #1D9E75; }
+  .status-error { color: #D85A30; }
+  .sidebar-message { padding: 14px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .vlogger-arrow { font-size: 12px; color: var(--hint); }
+  .custom-pin { display: flex; align-items: center; justify-content: center; }
+  .pin-outer { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .pin-initials { transform: rotate(45deg); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: white; line-height: 1; }
+  .leaflet-popup-content-wrapper { border-radius: var(--radius) !important; border: 1px solid var(--border) !important; box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important; padding: 0 !important; overflow: hidden; }
+  .leaflet-popup-content { margin: 0 !important; width: 230px !important; }
+  .leaflet-popup-tip-container { display: none; }
+  .popup-thumb { width: 100%; height: 120px; object-fit: cover; display: block; }
+  .popup-thumb-placeholder { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; }
+  .popup-body { padding: 12px 14px; }
+  .popup-channel { font-size: 14px; font-weight: 500; color: var(--text); }
+  .popup-location { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .popup-video { font-size: 11px; color: var(--hint); margin-top: 8px; line-height: 1.4; border-top: 1px solid var(--border); padding-top: 8px; }
+  .popup-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 999px; margin-top: 6px; font-weight: 500; }
+  .popup-yt-link { display: block; font-size: 11px; color: var(--accent); margin-top: 6px; text-decoration: none; }
+  .popup-yt-link:hover { text-decoration: underline; }
+
+  .legend { position: absolute; bottom: 24px; left: 16px; z-index: 999; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 11px; color: var(--muted); }
+  .leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: var(--radius-sm) !important; overflow: hidden; }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-bottom: 1px solid var(--border) !important; font-size: 16px !important; line-height: 26px !important; width: 28px !important; height: 28px !important; }
+  .leaflet-control-zoom a:hover { background: var(--bg) !important; }
+  .leaflet-control-attribution { display: none; }
+  .loading-overlay { position: absolute; top: 16px; right: 16px; z-index: 999; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; color: var(--muted); display: none; }
+  .loading-overlay.visible { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 14px; }
+    .last-updated { display: none; }
+    .sidebar { width: calc(100% - 32px); max-height: 34vh; }
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Vlog<span>Radar</span></div>
+    <div class="header-right">
+      <div class="tracker-count" id="tracker-count">Loading...</div>
+      <div class="last-updated" id="last-updated"></div>
+    </div>
+  </header>
+  <div id="map-container">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="sidebar-header">
+        Tracked vloggers
+        <button class="refresh-btn" onclick="load()">Refresh</button>
+      </div>
+      <div id="vlogger-list"></div>
+    </div>
+    <div class="loading-overlay" id="loading-overlay">
+      <span class="spinner"></span><span id="loading-text">Fetching latest videos...</span>
+    </div>
+    <div class="legend">Click a pin to see latest video</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ============ SETTINGS ============
+// After you deploy the backend on Render, paste its web address here.
+// Keep the quote marks and leave off any slash at the end.
+const API_URL = "https://YOUR-BACKEND-NAME.onrender.com";
+// ==================================
+
+const map = L.map('map', { center: [25, 20], zoom: 2, zoomControl: false });
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  subdomains: 'abcd'
+}).addTo(map);
+
+const markers = {};
+
+// Anything that came from the server is escaped before it goes into the page.
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+const safeColor = c => (/^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#1a6ef5');
+const safeImg = u => (typeof u === 'string' && u.startsWith('https://') ? u : '');
+
+function makeIcon(v) {
+  return L.divIcon({
+    html: `<div class="custom-pin"><div class="pin-outer" style="background:${safeColor(v.color)}"><span class="pin-initials">${esc(v.initials)}</span></div></div>`,
+    className: '', iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -38]
+  });
+}
+
+function position(v) {
+  return v.location ? [v.location.lat, v.location.lng] : [v.fallbackLat, v.fallbackLng];
+}
+
+function placeName(v) {
+  return v.location ? v.location.name : `${v.fallbackLocation} (default)`;
+}
+
+function statusOf(v) {
+  if (!v.video) return { text: "Couldn't load latest video", cls: 'status-error' };
+  if (v.stale) return { text: 'Showing earlier data', cls: 'status-error' };
+  if (!v.location) return { text: 'Location unknown · showing default', cls: 'status-error' };
+  return { text: v.location.source === 'youtube' ? 'Live · creator-tagged location' : v.location.source === 'ai' ? 'Live · AI location' : 'Live · place-name match', cls: 'status-live' };
+}
+
+function makePopupHtml(v) {
+  const color = safeColor(v.color);
+  const img = safeImg(v.video?.thumbnail);
+  const thumb = img
+    ? `<img class="popup-thumb" src="${esc(img)}" alt="${esc(v.name)}" />`
+    : `<div class="popup-thumb-placeholder" style="background:${color}18;color:${color}">${esc(v.initials)}</div>`;
+  const title = v.video?.title || (v.error ? 'Latest video unavailable right now' : '');
+  const date = v.video?.publishedAt
+    ? new Date(v.video.publishedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+  const link = v.video?.videoId
+    ? `<a class="popup-yt-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(v.video.videoId)}" target="_blank" rel="noopener">Watch on YouTube →</a>`
+    : '';
+  return `<div>
+    ${thumb}
+    <div class="popup-body">
+      <div class="popup-channel">${esc(v.name)}</div>
+      <div class="popup-location">📍 ${esc(placeName(v))}</div>
+      ${title ? `<div class="popup-video">${esc(title)}</div>` : ''}
+      ${date ? `<span class="popup-badge" style="background:${color}18;color:${color}">${esc(date)}</span>` : ''}
+      ${link}
+    </div>
+  </div>`;
+}
+
+function render(vloggers) {
+  Object.values(markers).forEach(m => m.remove());
+  const list = document.getElementById('vlogger-list');
+  list.innerHTML = '';
+
+  vloggers.forEach(v => {
+    const marker = L.marker(position(v), { icon: makeIcon(v), opacity: v.location ? 1 : 0.5 }).addTo(map);
+    marker.bindPopup(makePopupHtml(v), { maxWidth: 230 });
+    markers[v.channelId] = marker;
+
+    const status = statusOf(v);
+    const item = document.createElement('div');
+    item.className = 'vlogger-item';
+    item.innerHTML = `
+      <div class="vlogger-dot" style="background:${safeColor(v.color)}"></div>
+      <div class="vlogger-info">
+        <div class="vlogger-name">${esc(v.name)}</div>
+        <div class="vlogger-loc">${esc(placeName(v))}</div>
+        <div class="vlogger-status ${status.cls}">${esc(status.text)}</div>
+      </div>
+      <div class="vlogger-arrow">›</div>`;
+    item.addEventListener('click', () => {
+      map.setView(position(v), 5, { animate: true });
+      setTimeout(() => marker.openPopup(), 400);
+      document.querySelectorAll('.vlogger-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+    });
+    list.appendChild(item);
+  });
+
+  document.getElementById('tracker-count').textContent = `${vloggers.length} vloggers tracked`;
+}
+
+function showMessage(text) {
+  document.getElementById('vlogger-list').innerHTML = `<div class="sidebar-message">${esc(text)}</div>`;
+  document.getElementById('tracker-count').textContent = 'Not connected';
+}
+
+async function load() {
+  if (API_URL.includes('YOUR-BACKEND')) {
+    showMessage('Set API_URL near the top of this file to your backend address, then reopen the page.');
+    return;
+  }
+
+  const overlay = document.getElementById('loading-overlay');
+  const overlayText = document.getElementById('loading-text');
+  overlayText.textContent = 'Fetching latest videos...';
+  overlay.classList.add('visible');
+  // Free hosting puts the server to sleep when it is quiet, so the first load can be slow.
+  const slowNotice = setTimeout(() => {
+    overlayText.textContent = 'Waking up the server. This can take up to a minute...';
+  }, 6000);
+  const controller = new AbortController();
+  const giveUp = setTimeout(() => controller.abort(), 90000);
+
+  try {
+    const res = await fetch(`${API_URL}/api/vloggers`, { signal: controller.signal });
+    if (!res.ok) throw new Error(`Server replied with status ${res.status}`);
+    const data = await res.json();
+    render(data.vloggers);
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date(data.updatedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch (err) {
+    console.error(err);
+    showMessage("Couldn't reach the VlogRadar server. Check API_URL is correct, or try Refresh in a minute.");
+  } finally {
+    clearTimeout(slowNotice);
+    clearTimeout(giveUp);
+    overlay.classList.remove('visible');
+  }
+}
+
+load();
+</script>
+</body>
+</html>
